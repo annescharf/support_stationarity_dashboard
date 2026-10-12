@@ -73,6 +73,9 @@ shinyModuleUserInterface <- function(id, label) {
   # create function to insert linebreaks
   linebreaks <- function(n){HTML(strrep(br(), n))}
   
+  # offer a stored individual as a choice, so that it can be restored before the data is loaded
+  restored_individual <- restoreInput(id = ns("dropdown_individual"), default = "all")
+  
   tagList(
     titlePanel("Stationarity Dashboard"),
     tags$style(type = "text/css", ".col-sm-9 {padding: 15px;}"), # prevent graphs from overlapping
@@ -91,7 +94,8 @@ shinyModuleUserInterface <- function(id, label) {
       column(2,
              selectInput(ns("dropdown_individual"),
                          "Individual:",
-                         choices = c("all"))
+                         choices = unique(c(restored_individual, "all")),
+                         selected = restored_individual)
       ),
       column(2,
              selectInput(ns("dropdown_date_range"),
@@ -220,7 +224,12 @@ shinyModule <- function(input, output, session, data) {
     keys <- c(unique_individuals, "all")
     values <- c(unique_individuals, "all")
     key_value_list <- setNames(values, keys)
-    updateSelectInput(session, "dropdown_individual", choices = key_value_list, selected = c("all" = "all"))
+    # keep a stored individual if it is part of the data, otherwise select all
+    selected_individual <- isolate(input$dropdown_individual)
+    if (is.null(selected_individual) || !(selected_individual %in% unique_individuals)) {
+      selected_individual <- "all"
+    }
+    updateSelectInput(session, "dropdown_individual", choices = key_value_list, selected = selected_individual)
     
     # remove modal after data loading
     removeModal()
